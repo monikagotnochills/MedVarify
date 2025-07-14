@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedVerify - Blockchain Medicine Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        accent: '#8b5cf6',
+                        dark: '#0f172a',
+                        light: '#f8fafc'
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .dark body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        }
+        
+        .nft-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .nft-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .step-card {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .dark .step-card {
+            border-left: 4px solid #60a5fa;
+        }
+        
+        .toast {
+            animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(20px); }
+        }
+        
+        .qr-scanner {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1rem;
+        }
+        
+        .qr-scanner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(59, 130, 246, 0.2) 0%, 
+                rgba(59, 130, 246, 0) 20%, 
+                rgba(59, 130, 246, 0) 80%, 
+                rgba(59, 130, 246, 0.2) 100%);
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .qr-scanner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            transform: translate(-50%, -50%);
+            border: 2px solid #3b82f6;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-white dark:bg-dark border-b border-gray-200 dark:border-gray-800 py-4 px-6 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center space-x-2">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <i class="fas fa-pills text-white text-xl"></i>
+            </div>
+            <span class="text-2xl font-bold text-dark dark:text-light">MedVerify</span>
+        </div>
+        
+        <div class="hidden md:flex space-x-6">
+            <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition">Home</a>
+            <a href="#verify" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition">Verify</a>
+            <a href="#admin" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition">Admin</a>
+            <a href="#explorer" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition">Explorer</a>
+            <a href="#about" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition">About</a>
+            <a href="#contact" class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition">Contact</a>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <button id="themeToggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                <i class="fas fa-sun text-yellow-500 dark:hidden"></i>
+                <i class="fas fa-moon text-indigo-300 hidden dark:block"></i>
+            </button>
+            
+            <button id="walletConnect" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center space-x-2">
+                <i class="fas fa-wallet"></i>
+                <span>Connect Wallet</span>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-xs w-full"></div>
+    
+    <!-- Main Content -->
+    <main class="flex-grow">
+        <!-- Home Page -->
+        <section id="home" class="py-16 px-4 sm:px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h1 class="text-5xl font-bold text-dark dark:text-light mb-6">
+                            Verify Your Medicine's <span class="text-primary">Authenticity</span> On-Chain
+                        </h1>
+                        <p class="text-xl text-gray-600 dark:text-gray-300 mb-8">
+                            MedVerify leverages blockchain technology to combat counterfeit medicines, ensuring patient safety through transparent and immutable verification.
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <a href="#verify" class="px-8 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-bold hover:opacity-90 transition">
+                                Verify Now
+                            </a>
+                            <a href="#admin" class="px-8 py-3 bg-gray-800 dark:bg-gray-700 text-white rounded-lg font-bold hover:bg-gray-900 dark:hover:bg-gray-600 transition">
+                                Go to Admin Panel
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="glass-card rounded-2xl p-8 shadow-xl">
+                            <h2 class="text-2xl font-bold text-dark dark:text-light mb-6">How MedVerify Works</h2>
+                            
+                            <div class="space-y-6">
+                                <div class="step-card p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                    <div class="flex items-start space-x-4">
+                                        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <span class="text-primary font-bold text-xl">1</span>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-dark dark:text-light">Minting at Source</h3>
+                                            <p class="text-gray-600 dark:text-gray-300">Manufacturers mint NFTs representing medicine batches on Archway blockchain.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="step-card p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                    <div class="flex items-start space-x-4">
+                                        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <span class="text-primary font-bold text-xl">2</span>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-dark dark:text-light">Metadata Storage</h3>
+                                            <p class="text-gray-600 dark:text-gray-300">Medicine details are stored securely on IPFS, linked to the NFT.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="step-card p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                    <div class="flex items-start space-x-4">
+                                        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <span class="text-primary font-bold text-xl">3</span>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-dark dark:text-light">Public Verification</h3>
+                                            <p class="text-gray-600 dark:text-gray-300">Anyone can verify authenticity by checking the NFT on the blockchain.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Verify Medicine -->
+        <section id="verify" class="py-16 px-4 sm:px-6 bg-gray-50 dark:bg-gray-900">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-dark dark:text-light mb-4">Verify Medicine Authenticity</h2>
+                    <p class="text-gray-600 dark:text-gray-300">Enter the NFT Token ID or Batch ID to verify the authenticity of your medicine</p>
+                </div>
+                
+                <div class="glass-card rounded-2xl p-8 shadow-xl">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <div class="mb-6">
+                                <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Enter Token ID or Batch Number</label>
+                                <div class="flex">
+                                    <input type="text" id="verifyInput" class="flex-grow px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800" placeholder="e.g. 123456">
+                                    <button id="verifyBtn" class="bg-primary hover:bg-blue-600 text-white px-6 py-3 rounded-r-lg font-medium transition">Verify</button>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mb-6">
+                                <span class="text-gray-600 dark:text-gray-300">OR</span>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button id="scanQRBtn" class="px-6 py-3 bg-gray-800 dark:bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-900 dark:hover:bg-gray-600 transition flex items-center justify-center space-x-2 w-full">
+                                    <i class="fas fa-qrcode"></i>
+                                    <span>Scan QR Code</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="qrScanner" class="qr-scanner hidden">
+                            <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-64 flex items-center justify-center">
+                                <p class="text-gray-500">QR Scanner Placeholder</p>
+                            </div>
+                            <div class="text-center mt-4">
+                                <button id="closeScannerBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition">
+                                    Close Scanner
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Verification Result -->
+                    <div id="verificationResult" class="mt-8 hidden">
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <h3 class="text-xl font-bold text-dark dark:text-light mr-3">Paracetamol 500mg Tablets</h3>
+                                        <span class="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm font-medium">Authentic</span>
+                                    </div>
+                                    <p class="text-gray-600 dark:text-gray-300">Batch ID: PC-2023-08-001</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-500">Token ID: #123456</p>
+                                    <p class="text-sm text-gray-500">Minted: Aug 15, 2023</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <h4 class="text-gray-700 dark:text-gray-300 font-medium mb-2">Manufacturer Details</h4>
+                                    <p class="text-dark dark:text-light">PharmaSafe Inc.</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Reg. No: MH/DRUG/2023/12345</p>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="text-gray-700 dark:text-gray-300 font-medium mb-2">Batch Information</h4>
+                                    <p><span class="font-medium">Manufacture Date:</span> Aug 1, 2023</p>
+                                    <p><span class="font-medium">Expiry Date:</span> Jul 31, 2025</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-gray-700 dark:text-gray-300 font-medium mb-2">Owner Wallet</h4>
+                                <p class="text-dark dark:text-light font-mono break-all">archway1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0</p>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-gray-700 dark:text-gray-300 font-medium mb-2">IPFS Metadata</h4>
+                                <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+                                    <pre class="text-sm overflow-x-auto">{
+  "name": "Paracetamol 500mg Tablets",
+  "description": "Pain relief and fever reducer",
+  "manufacturer": "PharmaSafe Inc.",
+  "batch_id": "PC-2023-08-001",
+  "manufacture_date": "2023-08-01",
+  "expiry_date": "2025-07-31",
+  "image": "ipfs://QmX9z4f8s2j5k7h6g5f4d3s2a1q9w8e7r6t5y4u3i2o1p",
+  "properties": {
+    "quantity": 1000,
+    "dosage": "500mg",
+    "ingredients": ["Paracetamol"]
+  }
+}</pre>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6">
+                                <a href="#" class="inline-flex items-center text-primary hover:text-blue-700 dark:hover:text-blue-300 transition">
+                                    <i class="fas fa-external-link-alt mr-2"></i>
+                                    View on Blockchain Explorer
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Admin Panel -->
+        <section id="admin" class="py-16 px-4 sm:px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-dark dark:text-light mb-4">Admin Panel</h2>
+                    <p class="text-gray-600 dark:text-gray-300">Mint new medicine NFTs and manage existing batches</p>
+                </div>
+                
+                <div class="glass-card rounded-2xl p-8 shadow-xl">
+                    <div id="walletConnectSection" class="text-center py-8">
+                        <i class="fas fa-lock text-4xl text-primary mb-4"></i>
+                        <h3 class="text-xl font-bold text-dark dark:text-light mb-2">Admin Access Required</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">Please connect your authorized wallet to access the admin panel</p>
+                        <button id="adminWalletConnect" class="px-6 py-3 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition">
+                            Connect Admin Wallet
+                        </button>
+                    </div>
+                    
+                    <div id="adminPanelContent" class="hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- Mint Form -->
+                            <div>
+                                <h3 class="text-xl font-bold text-dark dark:text-light mb-6">Mint New Medicine NFT</h3>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Medicine Name</label>
+                                        <input type="text" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800" placeholder="e.g. Paracetamol 500mg">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Batch ID</label>
+                                        <input type="text" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800" placeholder="e.g. PC-2023-08-001">
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Manufacture Date</label>
+                                            <input type="date" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800">
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Expiry Date</label>
+                                            <input type="date" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800">
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Description</label>
+                                        <textarea class="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800" rows="3" placeholder="Medicine description..."></textarea>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Upload Image</label>
+                                        <div class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition">
+                                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
+                                            <p class="text-gray-500 mb-2">Click to upload or drag and drop</p>
+                                            <p class="text-sm text-gray-400">PNG, JPG, GIF up to 10MB</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <button id="mintBtn" class="w-full py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-bold hover:opacity-90 transition mt-4">
+                                        Mint Medicine NFT
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Recent NFTs -->
+                            <div>
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-xl font-bold text-dark dark:text-light">Recently Minted NFTs</h3>
+                                    <button class="text-primary hover:text-blue-700 dark:hover:text-blue-300 transition">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <div class="nft-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start">
+                                        <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 flex items-center justify-center mr-4">
+                                            <i class="fas fa-pills text-primary text-xl"></i>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <h4 class="font-bold text-dark dark:text-light">Paracetamol 500mg</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Batch: PC-2023-08-001</p>
+                                            <div class="flex items-center text-sm">
+                                                <span class="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded mr-2">Valid</span>
+                                                <span class="text-gray-500">Token #123456</span>
+                                            </div>
+                                        </div>
+                                        <button class="text-gray-400 hover:text-primary transition">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="nft-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start">
+                                        <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 flex items-center justify-center mr-4">
+                                            <i class="fas fa-pills text-primary text-xl"></i>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <h4 class="font-bold text-dark dark:text-light">Amoxicillin Capsules</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Batch: AMX-2023-07-045</p>
+                                            <div class="flex items-center text-sm">
+                                                <span class="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded mr-2">Valid</span>
+                                                <span class="text-gray-500">Token #123455</span>
+                                            </div>
+                                        </div>
+                                        <button class="text-gray-400 hover:text-primary transition">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="nft-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start">
+                                        <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 flex items-center justify-center mr-4">
+                                            <i class="fas fa-pills text-primary text-xl"></i>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <h4 class="font-bold text-dark dark:text-light">Vitamin C Tablets</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Batch: VC-2023-06-112</p>
+                                            <div class="flex items-center text-sm">
+                                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded mr-2">Expiring Soon</span>
+                                                <span class="text-gray-500">Token #123454</span>
+                                            </div>
+                                        </div>
+                                        <button class="text-gray-400 hover:text-primary transition">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="nft-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start">
+                                        <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 flex items-center justify-center mr-4">
+                                            <i class="fas fa-pills text-primary text-xl"></i>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <h4 class="font-bold text-dark dark:text-light">Ibuprofen 200mg</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Batch: IBU-2023-05-087</p>
+                                            <div class="flex items-center text-sm">
+                                                <span class="px-2 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded mr-2">Expired</span>
+                                                <span class="text-gray-500">Token #123453</span>
+                                            </div>
+                                        </div>
+                                        <button class="text-gray-400 hover:text-primary transition">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Batch Explorer -->
+        <section id="explorer" class="py-16 px-4 sm:px-6 bg-gray-50 dark:bg-gray-900">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-dark dark:text-light mb-4">Batch Explorer</h2>
+                    <p class="text-gray-600 dark:text-gray-300">Browse all medicine batches minted on the blockchain</p>
+                </div>
+                
+                <div class="glass-card rounded-2xl p-8 shadow-xl">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                        <div class="relative w-full sm:w-64">
+                            <input type="text" class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800" placeholder="Search batches...">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        
+                        <div class="flex space-x-2 w-full sm:w-auto">
+                            <select class="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800">
+                                <option>All Statuses</option>
+                                <option>Valid</option>
+                                <option>Expiring Soon</option>
+                                <option>Expired</option>
+                            </select>
+                            
+                            <select class="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800">
+                                <option>Sort by Newest</option>
+                                <option>Sort by Oldest</option>
+                                <option>Sort by Name</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200 dark:border-gray-700">
+                                    <th class="py-3 px-4 text-left text-gray-700 dark:text-gray-300 font-medium">NFT ID</th>
+                                    <th class="py-3 px-4 text-left text-gray-700 dark:text-gray-300 font-medium">Medicine Name</th>
+                                    <th class="py-3 px-4 text-left text-gray-700 dark:text-gray-300 font-medium">Batch ID</th>
+                                    <th class="py-3 px-4 text-left text-gray-700 dark:text-gray-300 font-medium">Manufacturer</th>
+                                    <th class="py-3 px-4 text-left text-gray-700 dark:text-gray-300 font-medium">Expiry Date</th>
+                                    <th class="py-3 px-4 text-left text-gray-700 dark:text-gray-300 font-medium">Status</th>
+                                    <th class="py-3 px-4 text-left text-gray-700 dark:text-gray-300 font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <td class="py-4 px-4 font-mono">#123456</td>
+                                    <td class="py-4 px-4 font-medium">Paracetamol 500mg</td>
+                                    <td class="py-4 px-4">PC-2023-08-001</td>
+                                    <td class="py-4 px-4">PharmaSafe Inc.</td>
+                                    <td class="py-4 px-4">Jul 31, 2025</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-sm">Valid</span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <button class="text-primary hover:text-blue-700 dark:hover:text-blue-300 transition">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <td class="py-4 px-4 font-mono">#123455</td>
+                                    <td class="py-4 px-4 font-medium">Amoxicillin Capsules</td>
+                                    <td class="py-4 px-4">AMX-2023-07-045</td>
+                                    <td class="py-4 px-4">MediHealth Ltd.</td>
+                                    <td class="py-4 px-4">Sep 15, 2024</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-sm">Valid</span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <button class="text-primary hover:text-blue-700 dark:hover:text-blue-300 transition">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <td class="py-4 px-4 font-mono">#123454</td>
+                                    <td class="py-4 px-4 font-medium">Vitamin C Tablets</td>
+                                    <td class="py-4 px-4">VC-2023-06-112</td>
+                                    <td class="py-4 px-4">NutraWell Inc.</td>
+                                    <td class="py-4 px-4">Dec 1, 2023</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded text-sm">Expiring Soon</span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <button class="text-primary hover:text-blue-700 dark:hover:text-blue-300 transition">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <td class="py-4 px-4 font-mono">#123453</td>
+                                    <td class="py-4 px-4 font-medium">Ibuprofen 200mg</td>
+                                    <td class="py-4 px-4">IBU-2023-05-087</td>
+                                    <td class="py-4 px-4">PainFree Pharma</td>
+                                    <td class="py-4 px-4">May 31, 2023</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-2 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded text-sm">Expired</span>
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <button class="text-primary hover:text-blue-700 dark:hover:text-blue-300 transition">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-8">
+                        <div class="text-gray-600 dark:text-gray-300">Showing 4 of 128 batches</div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">&laquo;</button>
+                            <button class="px-3 py-1 bg-primary text-white rounded">1</button>
+                            <button class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">2</button>
+                            <button class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">3</button>
+                            <button class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">&raquo;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- About Page -->
+        <section id="about" class="py-16 px-4 sm:px-6">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-dark dark:text-light mb-4">About MedVerify</h2>
+                    <p class="text-gray-600 dark:text-gray-300">Learn about our mission to combat counterfeit medicines using blockchain technology</p>
+                </div>
+                
+                <div class="glass-card rounded-2xl p-8 shadow-xl">
+                    <div class="prose dark:prose-invert max-w-none">
+                        <h3 class="text-2xl font-bold mb-4">The Problem</h3>
+                        <p class="mb-6">Counterfeit medicines are a global health crisis, causing an estimated 1 million deaths annually. These fake drugs often contain incorrect ingredients, improper dosages, or harmful substances, putting patients at risk and undermining trust in healthcare systems.</p>
+                        
+                        <h3 class="text-2xl font-bold mb-4">Our Solution</h3>
+                        <p class="mb-6">MedVerify leverages blockchain technology to create an immutable record of medicine authenticity. By minting each medicine batch as a non-fungible token (NFT) on the Archway blockchain, we establish a transparent and tamper-proof verification system.</p>
+                        
+                        <h3 class="text-2xl font-bold mb-4">How Blockchain Solves It</h3>
+                        <ul class="list-disc pl-6 mb-6 space-y-2">
+                            <li><span class="font-medium">Immutable Records:</span> Once recorded, medicine data cannot be altered or deleted</li>
+                            <li><span class="font-medium">Transparency:</span> All stakeholders can verify authenticity through the blockchain</li>
+                            <li><span class="font-medium">Security:</span> Cryptographic verification prevents counterfeiting</li>
+                            <li><span class="font-medium">Traceability:</span> Complete history of each medicine batch from manufacturer to patient</li>
+                        </ul>
+                        
+                        <h3 class="text-2xl font-bold mb-4">Technology Stack</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                            <div class="flex items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <i class="fab fa-react text-3xl text-blue-500 mr-3"></i>
+                                <span>React</span>
+                            </div>
+                            <div class="flex items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <i class="fas fa-wind text-3xl text-teal-500 mr-3"></i>
+                                <span>Tailwind CSS</span>
+                            </div>
+                            <div class="flex items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <i class="fas fa-cube text-3xl text-purple-500 mr-3"></i>
+                                <span>Archway</span>
+                            </div>
+                            <div class="flex items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <i class="fas fa-coins text-3xl text-yellow-500 mr-3"></i>
+                                <span>CW721 NFTs</span>
+                            </div>
+                            <div class="flex items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <i class="fas fa-network-wired text-3xl text-blue-300 mr-3"></i>
+                                <span>IPFS</span>
+                            </div>
+                            <div class="flex items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <i class="fas fa-wallet text-3xl text-indigo-500 mr-3"></i>
+                                <span>Keplr Wallet</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <h3 class="text-xl font-bold mb-4">Created by Monika Sharma</h3>
+                            <p>MedVerify was developed as a solution to the growing problem of counterfeit medicines in global healthcare systems.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Contact Page -->
+        <section id="contact" class="py-16 px-4 sm:px-6 bg-gray-50 dark:bg-gray-900">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-dark dark:text-light mb-4">Contact Us</h2>
+                    <p class="text-gray-600 dark:text-gray-300">For any issues, suggestions, or collaboration opportunities</p>
+                </div>
+                
+                <div class="glass-card rounded-2xl p-8 shadow-xl text-center">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-envelope text-3xl text-primary"></i>
+                    </div>
+                    
+                    <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">
+                        Reach out to us via email for any inquiries or support requests
+                    </p>
+                    
+                    <div class="inline-flex items-center text-xl font-medium text-dark dark:text-light bg-white dark:bg-gray-800 px-6 py-4 rounded-lg shadow">
+                        <i class="fas fa-envelope mr-3 text-primary"></i>
+                        <span>ms3319341@gmail.com</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-dark border-t border-gray-200 dark:border-gray-800 py-12 px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                            <i class="fas fa-pills text-white text-xl"></i>
+                        </div>
+                        <span class="text-xl font-bold text-dark dark:text-light">MedVerify</span>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 mb-6">
+                        Decentralized medicine authenticity verification using blockchain technology.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">
+                            <i class="fab fa-github text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">
+                            <i class="fab fa-linkedin-in text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold text-dark dark:text-light mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#home" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Home</a></li>
+                        <li><a href="#verify" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Verify Medicine</a></li>
+                        <li><a href="#admin" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Admin Panel</a></li>
+                        <li><a href="#explorer" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Batch Explorer</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold text-dark dark:text-light mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Documentation</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">API Reference</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Smart Contracts</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Whitepaper</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold text-dark dark:text-light mb-4">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Terms of Service</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-300 hover:text-primary transition">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8 text-center text-gray-600 dark:text-gray-400">
+                <p>&copy; 2023 MedVerify. All rights reserved. Making healthcare safer through technology.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Theme toggle
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            
+            // Update button icon
+            const sunIcon = themeToggle.querySelector('.fa-sun');
+            const moonIcon = themeToggle.querySelector('.fa-moon');
+            sunIcon.classList.toggle('hidden');
+            moonIcon.classList.toggle('hidden');
+        });
+        
+        // Initialize theme
+        if (localStorage.getItem('theme') === 'dark' || 
+            (window.matchMedia('(prefers-color-scheme: dark)').matches && !localStorage.getItem('theme'))) {
+            document.documentElement.classList.add('dark');
+            themeToggle.querySelector('.fa-sun').classList.add('hidden');
+            themeToggle.querySelector('.fa-moon').classList.remove('hidden');
+        } else {
+            themeToggle.querySelector('.fa-sun').classList.remove('hidden');
+            themeToggle.querySelector('.fa-moon').classList.add('hidden');
+        }
+        
+        // Wallet connection
+        const walletConnect = document.getElementById('walletConnect');
+        walletConnect.addEventListener('click', () => {
+            showToast('Wallet connected successfully!', 'success');
+            walletConnect.innerHTML = '<i class="fas fa-wallet"></i> <span>archway1a2b...7q8r9s0</span>';
+            walletConnect.classList.remove('bg-primary', 'hover:bg-blue-600');
+            walletConnect.classList.add('bg-green-500', 'hover:bg-green-600');
+        });
+        
+        // Admin wallet connection
+        const adminWalletConnect = document.getElementById('adminWalletConnect');
+        if (adminWalletConnect) {
+            adminWalletConnect.addEventListener('click', () => {
+                showToast('Admin wallet connected!', 'success');
+                document.getElementById('walletConnectSection').classList.add('hidden');
+                document.getElementById('adminPanelContent').classList.remove('hidden');
+            });
+        }
+        
+        // QR Scanner toggle
+        const scanQRBtn = document.getElementById('scanQRBtn');
+        const closeScannerBtn = document.getElementById('closeScannerBtn');
+        const qrScanner = document.getElementById('qrScanner');
+        
+        if (scanQRBtn && closeScannerBtn && qrScanner) {
+            scanQRBtn.addEventListener('click', () => {
+                qrScanner.classList.remove('hidden');
+                scanQRBtn.classList.add('hidden');
+            });
+            
+            closeScannerBtn.addEventListener('click', () => {
+                qrScanner.classList.add('hidden');
+                scanQRBtn.classList.remove('hidden');
+            });
+        }
+        
+        // Medicine verification
+        const verifyBtn = document.getElementById('verifyBtn');
+        const verifyInput = document.getElementById('verifyInput');
+        const verificationResult = document.getElementById('verificationResult');
+        
+        if (verifyBtn && verifyInput && verificationResult) {
+            verifyBtn.addEventListener('click', () => {
+                if (verifyInput.value.trim() === '') {
+                    showToast('Please enter a Token ID or Batch Number', 'error');
+                    return;
+                }
+                
+                // Simulate verification process
+                showToast('Verifying medicine...', 'info');
+                
+                setTimeout(() => {
+                    verificationResult.classList.remove('hidden');
+                    showToast('Medicine verified successfully!', 'success');
+                }, 1500);
+            });
+        }
+        
+        // Mint button
+        const mintBtn = document.getElementById('mintBtn');
+        if (mintBtn) {
+            mintBtn.addEventListener('click', () => {
+                showToast('Minting new medicine NFT...', 'info');
+                
+                setTimeout(() => {
+                    showToast('Medicine NFT minted successfully!', 'success');
+                }, 2000);
+            });
+        }
+        
+        // Toast notification system
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgColor = 'bg-blue-500';
+            if (type === 'success') bgColor = 'bg-green-500';
+            if (type === 'error') bgColor = 'bg-red-500';
+            if (type === 'warning') bgColor = 'bg-yellow-500';
+            
+            toast.className = `toast ${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-start`;
+            toast.innerHTML = `
+                <div class="flex-1">${message}</div>
+                <button class="ml-4 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            // Add close functionality
+            const closeBtn = toast.querySelector('button');
+            closeBtn.addEventListener('click', () => {
+                toast.remove();
+            });
+            
+            toastContainer.appendChild(toast);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
