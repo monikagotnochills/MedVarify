@@ -2,6 +2,7 @@
 # 🧬 MedVerify - Decentralized Medicine Authentication
 
 **MedVerify** is a decentralized Web3 platform that leverages blockchain technology and NFTs to verify the authenticity and traceability of pharmaceutical medicines. Using CW721 NFTs on the Archway blockchain and metadata hosted on IPFS, each medicine batch is uniquely registered and trackable across the supply chain.
+https://med-varify.vercel.app/
 <img width="1077" height="557" alt="image" src="https://github.com/user-attachments/assets/30b06909-1c7a-4ea2-9986-c828b50dc1ba" />
 
 
