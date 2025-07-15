@@ -6,6 +6,8 @@
     <title>MedVerify - Blockchain Medicine Verification</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Include Instascan library for QR scanning -->
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -120,9 +122,134 @@
             z-index: 10;
             pointer-events: none;
         }
+        
+        /* Admin panel transition effects */
+        #adminPanelContent {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        
+        #adminPanelContent.show {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 2000px;
+        }
+        
+        #walletConnectSection {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        
+        #walletConnectSection.hide {
+            opacity: 0;
+            transform: translateY(-20px);
+            max-height: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        /* Overlay effect */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .overlay.show {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* New animation for admin panel transition */
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+        
+        /* QR Scanner styles */
+        .scanner-container {
+            position: relative;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        
+        #scannerVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 4px solid #3b82f6;
+            border-radius: 1rem;
+            pointer-events: none;
+            box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.5);
+        }
+        
+        .scanner-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 70%;
+            height: 70%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #3b82f6;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
+    <!-- Overlay for transition effect -->
+    <div id="transitionOverlay" class="overlay">
+        <div class="spinner"></div>
+    </div>
+    
     <!-- Navbar -->
     <nav class="bg-white dark:bg-dark border-b border-gray-200 dark:border-gray-800 py-4 px-6 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center space-x-2">
@@ -258,11 +385,15 @@
                             </div>
                         </div>
                         
-                        <div id="qrScanner" class="qr-scanner hidden">
-                            <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-64 flex items-center justify-center">
-                                <p class="text-gray-500">QR Scanner Placeholder</p>
+                        <!-- QR Scanner Section -->
+                        <div id="qrScanner" class="hidden space-y-4">
+                            <div class="scanner-container">
+                                <video id="scannerVideo" class="w-full h-full"></video>
+                                <div class="scanner-overlay">
+                                    <div class="scanner-frame"></div>
+                                </div>
                             </div>
-                            <div class="text-center mt-4">
+                            <div class="text-center">
                                 <button id="closeScannerBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition">
                                     Close Scanner
                                 </button>
@@ -351,15 +482,15 @@
                         <i class="fas fa-lock text-4xl text-primary mb-4"></i>
                         <h3 class="text-xl font-bold text-dark dark:text-light mb-2">Admin Access Required</h3>
                         <p class="text-gray-600 dark:text-gray-300 mb-6">Please connect your authorized wallet to access the admin panel</p>
-                        <button id="adminWalletConnect" class="px-6 py-3 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition">
+                        <button id="adminWalletConnect" class="px-6 py-3 bg-primary hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center justify-center mx-auto">
+                            <i class="fas fa-wallet mr-2"></i>
                             Connect Admin Wallet
                         </button>
                     </div>
                     
-                    <div id="adminPanelContent" class="hidden">
+                    <div id="adminPanelContent">
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <!-- Mint Form -->
-
                             <form action="" method="post">
                             <div>
                                 <h3 class="text-xl font-bold text-dark dark:text-light mb-6">Mint New Medicine NFT</h3>
@@ -419,7 +550,6 @@
                                             </button>
                                         </div>
                                     </div>
-
                                     
                                     <button id="mintBtn" class="w-full py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-bold hover:opacity-90 transition mt-4">
                                         Mint Medicine NFT
@@ -790,6 +920,13 @@
     </footer>
     
     <script>
+        // QR Scanner variables
+        let scanner = null;
+        const scannerSection = document.getElementById('qrScanner');
+        const scanQRBtn = document.getElementById('scanQRBtn');
+        const closeScannerBtn = document.getElementById('closeScannerBtn');
+        const videoElement = document.getElementById('scannerVideo');
+        
         // Theme toggle
         const themeToggle = document.getElementById('themeToggle');
         themeToggle.addEventListener('click', () => {
@@ -823,31 +960,77 @@
             walletConnect.classList.add('bg-green-500', 'hover:bg-green-600');
         });
         
-        // Admin wallet connection
+        // Admin wallet connection with transition effect
         const adminWalletConnect = document.getElementById('adminWalletConnect');
+        const walletConnectSection = document.getElementById('walletConnectSection');
+        const adminPanelContent = document.getElementById('adminPanelContent');
+        const transitionOverlay = document.getElementById('transitionOverlay');
+        
         if (adminWalletConnect) {
             adminWalletConnect.addEventListener('click', () => {
-                showToast('Admin wallet connected!', 'success');
-                document.getElementById('walletConnectSection').classList.add('hidden');
-                document.getElementById('adminPanelContent').classList.remove('hidden');
+                // Show overlay with spinner
+                transitionOverlay.classList.add('show');
+                
+                // Simulate wallet connection delay
+                setTimeout(() => {
+                    // Fade out the wallet connect section
+                    walletConnectSection.classList.add('hide');
+                    
+                    // After fade out completes, show the admin panel
+                    setTimeout(() => {
+                        // Show the admin panel with slide-in animation
+                        adminPanelContent.classList.add('show', 'slide-in');
+                        
+                        // Hide overlay
+                        transitionOverlay.classList.remove('show');
+                        
+                        showToast('Admin wallet connected!', 'success');
+                    }, 500);
+                }, 1000);
             });
         }
         
-        // QR Scanner toggle
-        const scanQRBtn = document.getElementById('scanQRBtn');
-        const closeScannerBtn = document.getElementById('closeScannerBtn');
-        const qrScanner = document.getElementById('qrScanner');
+        // QR Scanner functionality
+        scanQRBtn.addEventListener('click', startScanner);
+        closeScannerBtn.addEventListener('click', stopScanner);
         
-        if (scanQRBtn && closeScannerBtn && qrScanner) {
-            scanQRBtn.addEventListener('click', () => {
-                qrScanner.classList.remove('hidden');
-                scanQRBtn.classList.add('hidden');
-            });
+        async function startScanner() {
+            scannerSection.classList.remove('hidden');
+            scanQRBtn.classList.add('hidden');
             
-            closeScannerBtn.addEventListener('click', () => {
-                qrScanner.classList.add('hidden');
-                scanQRBtn.classList.remove('hidden');
-            });
+            try {
+                scanner = new Instascan.Scanner({
+                    video: videoElement,
+                    mirror: false
+                });
+                
+                scanner.addListener('scan', function(content) {
+                    document.getElementById('verifyInput').value = content;
+                    verifyMedicine();
+                    stopScanner();
+                });
+                
+                const cameras = await Instascan.Camera.getCameras();
+                if (cameras.length > 0) {
+                    await scanner.start(cameras[0]);
+                } else {
+                    showToast('No cameras found', 'error');
+                    stopScanner();
+                }
+            } catch (error) {
+                console.error('Camera error:', error);
+                showToast('Camera access denied', 'error');
+                stopScanner();
+            }
+        }
+        
+        function stopScanner() {
+            if (scanner) {
+                scanner.stop();
+                scanner = null;
+            }
+            scannerSection.classList.add('hidden');
+            scanQRBtn.classList.remove('hidden');
         }
         
         // Medicine verification
@@ -855,22 +1038,22 @@
         const verifyInput = document.getElementById('verifyInput');
         const verificationResult = document.getElementById('verificationResult');
         
-        if (verifyBtn && verifyInput && verificationResult) {
-            verifyBtn.addEventListener('click', () => {
-                if (verifyInput.value.trim() === '') {
-                    showToast('Please enter a Token ID or Batch Number', 'error');
-                    return;
-                }
-                
-                // Simulate verification process
-                showToast('Verifying medicine...', 'info');
-                
-                setTimeout(() => {
-                    verificationResult.classList.remove('hidden');
-                    showToast('Medicine verified successfully!', 'success');
-                }, 1500);
-            });
+        function verifyMedicine() {
+            const token = verifyInput.value.trim();
+            if (token === '') {
+                showToast('Please enter a Token ID or Batch Number', 'error');
+                return;
+            }
+            
+            showToast('Verifying medicine...', 'info');
+            
+            setTimeout(() => {
+                verificationResult.classList.remove('hidden');
+                showToast('Medicine verified successfully!', 'success');
+            }, 1500);
         }
+        
+        verifyBtn.addEventListener('click', verifyMedicine);
         
         // Mint button
         const mintBtn = document.getElementById('mintBtn');
